@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using NeverlandEvolved.Domain.Interfaces;
 using NeverlandEvolved.Infrastructure.Data;
+using NeverlandEvolved.Infrastructure.Repositories;
 using Scalar.AspNetCore; // Importera din DbContext
 using System.Text.Json.Serialization;
 
@@ -15,6 +17,7 @@ namespace NeverlandEvolved.API
             // Add services to the container.
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+            builder.Services.AddScoped<IGameRepository, GameRepository>();
 
             builder.Services.AddControllers().AddJsonOptions(options =>
             {

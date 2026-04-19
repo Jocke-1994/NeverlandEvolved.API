@@ -1,0 +1,6 @@
+@NeverlandEvolved.API_HostAddress = http://localhost:5058
+
+GET {{NeverlandEvolved.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

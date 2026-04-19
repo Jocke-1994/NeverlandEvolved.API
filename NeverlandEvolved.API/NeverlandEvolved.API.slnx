@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="NeverlandEvolved.API/NeverlandEvolved.API.csproj" />
+  <Project Path="NeverlandEvolved.Application/NeverlandEvolved.Application.csproj" />
+  <Project Path="NeverlandEvolved.Domain/NeverlandEvolved.Domain.csproj" />
+  <Project Path="NeverlandEvolved.Infrastructure/NeverlandEvolved.Infrastructure.csproj" />
+</Solution>

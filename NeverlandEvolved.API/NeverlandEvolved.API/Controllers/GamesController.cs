@@ -32,5 +32,64 @@ namespace NeverlandEvolved.API.Controllers
 
             return CreatedAtAction(nameof(GetGames), new { id = game.Id }, game);
         }
+        // GET: api/Games/5 (Hämtar ETT specifikt spel)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Game>> GetGame(int id)
+        {
+            var game = await _context.Games.FindAsync(id);
+
+            if (game == null)
+            {
+                return NotFound(); // 404 om spelet inte hittas
+            }
+
+            return game;
+        }
+
+        // PUT: api/Games/5 (Uppdaterar ett spel)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateGame(int id, Game game)
+        {
+            if (id != game.Id)
+            {
+                return BadRequest("ID i URL måste matcha ID i bodyn."); // 400 Bad Request
+            }
+
+            _context.Entry(game).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Games.Any(e => e.Id == id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent(); // 204 No Content (Standard när en uppdatering lyckas)
+        }
+
+        // DELETE: api/Games/5 (Raderar ett spel)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteGame(int id)
+        {
+            var game = await _context.Games.FindAsync(id);
+            if (game == null)
+            {
+                return NotFound();
+            }
+
+            _context.Games.Remove(game);
+            await _context.SaveChangesAsync();
+
+            return NoContent(); // 204 No Content
+        }
     }
 }

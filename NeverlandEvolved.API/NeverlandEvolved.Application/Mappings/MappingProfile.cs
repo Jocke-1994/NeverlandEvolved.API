@@ -10,6 +10,8 @@ namespace NeverlandEvolved.Application.Mappings
         {
             // Vi mappar från Game (Databas) -> GameDto (API)
             CreateMap<Game, GameDto>();
+
+            CreateMap<User, UserDto>();
         }
     }
 }

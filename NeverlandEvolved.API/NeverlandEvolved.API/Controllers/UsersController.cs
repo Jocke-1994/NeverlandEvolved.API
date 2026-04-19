@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using NeverlandEvolved.Domain.Entities;
-using NeverlandEvolved.Infrastructure.Data;
+﻿using MediatR;
+using Microsoft.AspNetCore.Mvc;
+using NeverlandEvolved.Application.DTOs;
+using NeverlandEvolved.Application.Users.Commands;
+using NeverlandEvolved.Application.Users.Queries;
 
 namespace NeverlandEvolved.API.Controllers
 {
@@ -8,21 +10,43 @@ namespace NeverlandEvolved.API.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IMediator _mediator;
 
-        public UsersController(AppDbContext context)
+        public UsersController(IMediator mediator)
         {
-            _context = context;
+            _mediator = mediator;
         }
 
-        // POST: api/Users (Skapar en användare)
-        [HttpPost]
-        public async Task<ActionResult<User>> CreateUser(User user)
+        // Hämta alla användare
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetAll()
         {
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            var users = await _mediator.Send(new GetAllUsersQuery());
+            return Ok(users);
+        }
+
+        // Hämta en specifik användare via ID
+        [HttpGet("{id}")]
+        public async Task<ActionResult<UserDto>> GetById(int id)
+        {
+            var user = await _mediator.Send(new GetUserByIdQuery(id));
+
+            if (user == null)
+            {
+                return NotFound();
+            }
 
             return Ok(user);
+        }
+
+        // Skapa en ny användare
+        [HttpPost]
+        public async Task<ActionResult<UserDto>> Create(CreateUserCommand command)
+        {
+            var userDto = await _mediator.Send(command);
+
+            // Returnerar en 201 Created med en länk till den nya användaren
+            return CreatedAtAction(nameof(GetById), new { id = userDto.Id }, userDto);
         }
     }
 }

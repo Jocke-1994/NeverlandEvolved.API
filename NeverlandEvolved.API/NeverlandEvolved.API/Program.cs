@@ -18,6 +18,8 @@ namespace NeverlandEvolved.API
             builder.Services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
             builder.Services.AddScoped<IGameRepository, GameRepository>();
+            builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(NeverlandEvolved.Application.Games.Queries.GetAllGamesQuery).Assembly));
+
 
             builder.Services.AddControllers().AddJsonOptions(options =>
             {

@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using MediatR;
+using Microsoft.AspNetCore.Mvc;
+using NeverlandEvolved.Application.Games.Queries;
+using NeverlandEvolved.Application.Games.Commands;
 using NeverlandEvolved.Domain.Entities;
-using NeverlandEvolved.Domain.Interfaces; // <-- Vi använder nu ditt Interface!
 
 namespace NeverlandEvolved.API.Controllers
 {
@@ -8,18 +10,18 @@ namespace NeverlandEvolved.API.Controllers
     [ApiController]
     public class GamesController : ControllerBase
     {
-        private readonly IGameRepository _repository; // <-- Databasen är borta, repot är här!
+        private readonly IMediator _mediator;
 
-        public GamesController(IGameRepository repository)
+        public GamesController(IMediator mediator)
         {
-            _repository = repository;
+            _mediator = mediator;
         }
 
         // GET: api/Games
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Game>>> GetGames()
         {
-            var games = await _repository.GetAllAsync();
+            var games = await _mediator.Send(new GetAllGamesQuery());
             return Ok(games);
         }
 
@@ -27,28 +29,27 @@ namespace NeverlandEvolved.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Game>> GetGame(int id)
         {
-            var game = await _repository.GetByIdAsync(id);
-
+            var game = await _mediator.Send(new GetGameByIdQuery(id));
             if (game == null) return NotFound();
-
             return Ok(game);
         }
 
         // POST: api/Games
         [HttpPost]
-        public async Task<ActionResult<Game>> CreateGame(Game game)
+        public async Task<ActionResult<Game>> CreateGame(CreateGameCommand command)
         {
-            var createdGame = await _repository.AddAsync(game);
+            var createdGame = await _mediator.Send(command);
             return CreatedAtAction(nameof(GetGame), new { id = createdGame.Id }, createdGame);
         }
-
         // PUT: api/Games/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateGame(int id, Game game)
+        public async Task<IActionResult> UpdateGame(int id, UpdateGameCommand command)
         {
-            if (id != game.Id) return BadRequest();
+            if (id != command.Id) return BadRequest();
 
-            await _repository.UpdateAsync(game);
+            var success = await _mediator.Send(command);
+            if (!success) return NotFound();
+
             return NoContent();
         }
 
@@ -56,10 +57,9 @@ namespace NeverlandEvolved.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteGame(int id)
         {
-            var game = await _repository.GetByIdAsync(id);
-            if (game == null) return NotFound();
+            var success = await _mediator.Send(new DeleteGameCommand(id));
+            if (!success) return NotFound();
 
-            await _repository.DeleteAsync(game);
             return NoContent();
         }
     }

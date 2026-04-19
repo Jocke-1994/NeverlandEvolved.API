@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NeverlandEvolved.Application.DTOs;
 using NeverlandEvolved.Application.Games.Commands;
@@ -44,6 +45,7 @@ namespace NeverlandEvolved.API.Controllers
         }
         // PUT: api/Games/5
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateGame(int id, UpdateGameCommand command)
         {
             if (id != command.Id) return BadRequest();
@@ -56,6 +58,7 @@ namespace NeverlandEvolved.API.Controllers
 
         // DELETE: api/Games/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteGame(int id)
         {
             var success = await _mediator.Send(new DeleteGameCommand(id));

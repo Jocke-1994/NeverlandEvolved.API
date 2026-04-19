@@ -1,73 +1,90 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
+using FluentValidation;
+using MediatR;
+using NeverlandEvolved.API.Middleware;
+using NeverlandEvolved.Application.Behaviors;
+using NeverlandEvolved.Application.Games.Commands;
+using NeverlandEvolved.Application.Mappings;
 using NeverlandEvolved.Domain.Interfaces;
 using NeverlandEvolved.Infrastructure.Data;
 using NeverlandEvolved.Infrastructure.Repositories;
-using Scalar.AspNetCore;
-using System.Text.Json.Serialization;
-using AutoMapper;
-using FluentValidation;
 
-namespace NeverlandEvolved.API
+// OBS: Om Scalar/Swagger bråkar, låter vi dessa usings vara borttagna/kommenterade
+// using Microsoft.OpenApi.Models; 
+// using Scalar.AspNetCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 1. DATABAS
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// 2. REPOSITORIES
+builder.Services.AddScoped<IGameRepository, GameRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+// 3. MEDIATR & PIPELINE BEHAVIORS
+builder.Services.AddMediatR(cfg => {
+    cfg.RegisterServicesFromAssembly(typeof(CreateGameCommand).Assembly);
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+});
+
+// 4. FLUENTVALIDATION & AUTOMAPPER
+builder.Services.AddValidatorsFromAssembly(typeof(CreateGameCommand).Assembly);
+
+// FIX: Detta är den mest stabila raden för AutoMapper
+//Microsoft.Extensions.DependencyInjection.ServiceCollectionExtensions.AddAutoMapper(builder.Services, typeof(MappingProfile));
+
+// 5. JWT AUTHENTICATION
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]!);
+
+builder.Services.AddAuthentication(options =>
 {
-    public class Program
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        public static void Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        ClockSkew = TimeSpan.Zero
+    };
+});
 
-            // 1. Databas
-            builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddAuthorization();
+builder.Services.AddControllers();
 
-            // 2. Repositories
-            builder.Services.AddScoped<IGameRepository, GameRepository>();
-            builder.Services.AddScoped<IUserRepository, UserRepository>();
+var app = builder.Build();
 
-            // 3. AutoMapper (Denna stängs nu korrekt direkt)
-            builder.Services.AddAutoMapper(cfg =>
-            {
-                cfg.AddProfile<NeverlandEvolved.Application.Mappings.MappingProfile>();
-            });
+// --- MIDDLEWARE PIPELINE ---
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-            // 4. FluentValidation
-            builder.Services.AddValidatorsFromAssembly(typeof(NeverlandEvolved.Application.Games.Commands.CreateGameCommandValidator).Assembly);
-
-            // 5. MediatR + Pipeline Behaviors (Vikten av ordning: Registrera assembly först, sen behaviors)
-            builder.Services.AddMediatR(cfg =>
-            {
-                cfg.RegisterServicesFromAssembly(typeof(NeverlandEvolved.Application.Games.Queries.GetAllGamesQuery).Assembly);
-
-                // Detta är "VG-motorn" som kör din validering automatiskt
-                cfg.AddOpenBehavior(typeof(NeverlandEvolved.Application.Behaviors.ValidationBehavior<,>));
-            });
-
-            // 6. Controllers & JSON
-            builder.Services.AddControllers().AddJsonOptions(options =>
-            {
-                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-            });
-
-            // 7. OpenAPI / Swagger
-            builder.Services.AddOpenApi();
-            builder.Services.AddEndpointsApiExplorer();
-
-            var app = builder.Build();
-
-            // --- Middleware-pipelinen (Ordningen här spelar också roll!) ---
-
-            app.UseMiddleware<NeverlandEvolved.API.Middleware.ExceptionHandlingMiddleware>();
-
-            if (app.Environment.IsDevelopment())
-            {
-                app.MapOpenApi();
-                app.MapScalarApiReference();
-            }
-
-            app.UseHttpsRedirection();
-            app.UseAuthorization();
-            app.MapControllers();
-
-            app.Run();
-        }
-    }
+// NÖDPLAN: Vi kommenterar bort Swagger/Scalar-anropen här också 
+// så att appen inte kraschar när den startar.
+/*
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger(options => { options.RouteTemplate = "openapi/{documentName}.json"; });
+    app.MapScalarApiReference();
 }
+*/
+
+app.UseHttpsRedirection();
+
+// VIKTIG ORDNING
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();

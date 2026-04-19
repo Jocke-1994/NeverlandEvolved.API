@@ -4,6 +4,7 @@ using NeverlandEvolved.Infrastructure.Data;
 using NeverlandEvolved.Infrastructure.Repositories;
 using Scalar.AspNetCore; // Importera din DbContext
 using System.Text.Json.Serialization;
+using AutoMapper;
 
 
 namespace NeverlandEvolved.API
@@ -19,7 +20,11 @@ namespace NeverlandEvolved.API
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
             builder.Services.AddScoped<IGameRepository, GameRepository>();
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(NeverlandEvolved.Application.Games.Queries.GetAllGamesQuery).Assembly));
-
+            // Vi skickar in själva klassen direkt, AutoMapper fattar då vilket projekt den ska leta i
+            builder.Services.AddAutoMapper(cfg =>
+            {
+                cfg.AddProfile<NeverlandEvolved.Application.Mappings.MappingProfile>();
+            });
 
             builder.Services.AddControllers().AddJsonOptions(options =>
             {

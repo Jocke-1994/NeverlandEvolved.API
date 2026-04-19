@@ -1,7 +1,8 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using NeverlandEvolved.Application.Games.Queries;
+using NeverlandEvolved.Application.DTOs;
 using NeverlandEvolved.Application.Games.Commands;
+using NeverlandEvolved.Application.Games.Queries;
 using NeverlandEvolved.Domain.Entities;
 
 namespace NeverlandEvolved.API.Controllers
@@ -19,7 +20,7 @@ namespace NeverlandEvolved.API.Controllers
 
         // GET: api/Games
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Game>>> GetGames()
+        public async Task<ActionResult<IEnumerable<GameDto>>> GetGames() // Ändra till GameDto här
         {
             var games = await _mediator.Send(new GetAllGamesQuery());
             return Ok(games);
@@ -27,19 +28,19 @@ namespace NeverlandEvolved.API.Controllers
 
         // GET: api/Games/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Game>> GetGame(int id)
+        public async Task<ActionResult<GameDto>> GetGame(int id)
         {
-            var game = await _mediator.Send(new GetGameByIdQuery(id));
-            if (game == null) return NotFound();
-            return Ok(game);
+            var gameDto = await _mediator.Send(new GetGameByIdQuery(id));
+            if (gameDto == null) return NotFound();
+
+            return Ok(gameDto);
         }
 
-        // POST: api/Games
         [HttpPost]
-        public async Task<ActionResult<Game>> CreateGame(CreateGameCommand command)
+        public async Task<ActionResult<GameDto>> CreateGame(CreateGameCommand command)
         {
-            var createdGame = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetGame), new { id = createdGame.Id }, createdGame);
+            var createdGameDto = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetGame), new { id = createdGameDto.Id }, createdGameDto);
         }
         // PUT: api/Games/5
         [HttpPut("{id}")]

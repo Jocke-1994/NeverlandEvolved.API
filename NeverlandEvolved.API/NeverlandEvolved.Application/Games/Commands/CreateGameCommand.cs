@@ -1,29 +1,34 @@
-﻿using MediatR;
+﻿using AutoMapper;
+using MediatR;
+using NeverlandEvolved.Application.DTOs;
 using NeverlandEvolved.Domain.Entities;
 using NeverlandEvolved.Domain.Interfaces;
 
 namespace NeverlandEvolved.Application.Games.Commands
 {
-    // Kommandot: Innehåller den data vi behöver för att skapa spelet
-    public class CreateGameCommand : IRequest<Game>
+    // Kommandot returnerar nu en GameDto istället för Game
+    public class CreateGameCommand : IRequest<GameDto>
     {
         public string Title { get; set; } = string.Empty;
         public string Genre { get; set; } = string.Empty;
         public decimal Price { get; set; }
     }
 
-    // Handlern: Utför själva jobbet
-    public class CreateGameCommandHandler : IRequestHandler<CreateGameCommand, Game>
+    public class CreateGameCommandHandler : IRequestHandler<CreateGameCommand, GameDto>
     {
         private readonly IGameRepository _repository;
+        private readonly IMapper _mapper;
 
-        public CreateGameCommandHandler(IGameRepository repository)
+        // Vi injicerar både vårt Repository och vår Mapper
+        public CreateGameCommandHandler(IGameRepository repository, IMapper mapper)
         {
             _repository = repository;
+            _mapper = mapper;
         }
 
-        public async Task<Game> Handle(CreateGameCommand request, CancellationToken cancellationToken)
+        public async Task<GameDto> Handle(CreateGameCommand request, CancellationToken cancellationToken)
         {
+            // 1. Skapa entiteten från kommandot (här kan man också använda mapper om man vill)
             var newGame = new Game
             {
                 Title = request.Title,
@@ -31,7 +36,11 @@ namespace NeverlandEvolved.Application.Games.Commands
                 Price = request.Price
             };
 
-            return await _repository.AddAsync(newGame);
+            // 2. Spara i databasen via repot
+            var savedGame = await _repository.AddAsync(newGame);
+
+            // 3. Mappa om den sparade entiteten (som har fått ett Id) till en DTO
+            return _mapper.Map<GameDto>(savedGame);
         }
     }
 }

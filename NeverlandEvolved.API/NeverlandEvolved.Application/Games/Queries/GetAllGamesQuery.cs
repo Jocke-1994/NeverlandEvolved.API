@@ -1,27 +1,33 @@
-﻿using MediatR;
+﻿using AutoMapper;
+using MediatR;
+using NeverlandEvolved.Application.DTOs; // Glöm inte denna
 using NeverlandEvolved.Domain.Entities;
 using NeverlandEvolved.Domain.Interfaces;
 
 namespace NeverlandEvolved.Application.Games.Queries
 {
-    // 1. Själva frågan (Berättar att vi förväntar oss en lista med spel tillbaka)
-    public class GetAllGamesQuery : IRequest<IEnumerable<Game>>
+    // 1. Vi vill nu få tillbaka en lista av DTOs istället för entiteter
+    public class GetAllGamesQuery : IRequest<IEnumerable<GameDto>>
     {
     }
 
-    // 2. Handlern (Den som faktiskt utför jobbet när någon ställer frågan)
-    public class GetAllGamesQueryHandler : IRequestHandler<GetAllGamesQuery, IEnumerable<Game>>
+    public class GetAllGamesQueryHandler : IRequestHandler<GetAllGamesQuery, IEnumerable<GameDto>>
     {
         private readonly IGameRepository _repository;
+        private readonly IMapper _mapper; // 2. Vi lägger till mappen här
 
-        public GetAllGamesQueryHandler(IGameRepository repository)
+        public GetAllGamesQueryHandler(IGameRepository repository, IMapper mapper)
         {
             _repository = repository;
+            _mapper = mapper;
         }
 
-        public async Task<IEnumerable<Game>> Handle(GetAllGamesQuery request, CancellationToken cancellationToken)
+        public async Task<IEnumerable<GameDto>> Handle(GetAllGamesQuery request, CancellationToken cancellationToken)
         {
-            return await _repository.GetAllAsync();
+            var games = await _repository.GetAllAsync();
+
+            // 3. Här sker magin! Vi mappar listan av Game -> GameDto
+            return _mapper.Map<IEnumerable<GameDto>>(games);
         }
     }
 }

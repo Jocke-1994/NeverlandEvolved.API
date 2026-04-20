@@ -11,6 +11,7 @@ using NeverlandEvolved.Application.Mappings;
 using NeverlandEvolved.Domain.Interfaces;
 using NeverlandEvolved.Infrastructure.Data;
 using NeverlandEvolved.Infrastructure.Repositories;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -90,6 +91,13 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 
+// ============================================================
+// 7. SCALAR (API-dokumentation)
+// Genererar ett interaktivt UI där man kan testa alla endpoints.
+// OpenAPI-specifikationen skapas automatiskt av ASP.NET Core.
+// ============================================================
+builder.Services.AddOpenApi();
+
 var app = builder.Build();
 
 // ============================================================
@@ -98,6 +106,13 @@ var app = builder.Build();
 // så att alla fel som uppstår längre ner i pipelinen fångas upp.
 // ============================================================
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// Scalar körs bara i utvecklingsläge — aldrig i produktion
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 
 app.UseHttpsRedirection();
 

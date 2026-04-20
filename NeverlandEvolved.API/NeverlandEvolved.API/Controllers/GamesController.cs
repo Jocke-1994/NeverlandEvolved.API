@@ -1,10 +1,9 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NeverlandEvolved.Application.DTOs;
 using NeverlandEvolved.Application.Games.Commands;
 using NeverlandEvolved.Application.Games.Queries;
-using NeverlandEvolved.Domain.Entities;
 
 namespace NeverlandEvolved.API.Controllers
 {
@@ -12,6 +11,8 @@ namespace NeverlandEvolved.API.Controllers
     [ApiController]
     public class GamesController : ControllerBase
     {
+        // IMediator är navet i CQRS-mönstret. Controllern skickar
+        // ett kommando eller en query, och MediatR hittar rätt handler.
         private readonly IMediator _mediator;
 
         public GamesController(IMediator mediator)
@@ -20,14 +21,18 @@ namespace NeverlandEvolved.API.Controllers
         }
 
         // GET: api/Games
+        // Hämtar alla spel och returnerar dem som en lista av GameDTOs.
+        // Öppen för alla — kräver ingen autentisering.
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<GameDto>>> GetGames() // Ändra till GameDto här
+        public async Task<ActionResult<IEnumerable<GameDto>>> GetGames()
         {
             var games = await _mediator.Send(new GetAllGamesQuery());
             return Ok(games);
         }
 
         // GET: api/Games/5
+        // Hämtar ett specifikt spel via dess ID.
+        // Returnerar 404 NotFound om spelet inte finns.
         [HttpGet("{id}")]
         public async Task<ActionResult<GameDto>> GetGame(int id)
         {
@@ -37,13 +42,19 @@ namespace NeverlandEvolved.API.Controllers
             return Ok(gameDto);
         }
 
+        // POST: api/Games
+        // Skapar ett nytt spel. ValidationBehavior kontrollerar datan automatiskt.
+        // Returnerar 201 Created med den skapade resursen och dess URL.
         [HttpPost]
         public async Task<ActionResult<GameDto>> CreateGame(CreateGameCommand command)
         {
             var createdGameDto = await _mediator.Send(command);
             return CreatedAtAction(nameof(GetGame), new { id = createdGameDto.Id }, createdGameDto);
         }
+
         // PUT: api/Games/5
+        // Uppdaterar ett befintligt spel. Kräver Admin-rollen.
+        // ID:t i URL:en måste matcha ID:t i request-bodyn.
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateGame(int id, UpdateGameCommand command)
@@ -53,10 +64,12 @@ namespace NeverlandEvolved.API.Controllers
             var success = await _mediator.Send(command);
             if (!success) return NotFound();
 
-            return NoContent();
+            return NoContent(); // 204 — lyckades men inget att returnera
         }
 
         // DELETE: api/Games/5
+        // Tar bort ett spel permanent. Kräver Admin-rollen.
+        // Returnerar 404 om spelet inte finns.
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteGame(int id)
@@ -64,7 +77,7 @@ namespace NeverlandEvolved.API.Controllers
             var success = await _mediator.Send(new DeleteGameCommand(id));
             if (!success) return NotFound();
 
-            return NoContent();
+            return NoContent(); // 204 — lyckades men inget att returnera
         }
     }
 }
